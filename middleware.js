@@ -13,9 +13,11 @@ const defaultOptions = {
 }
 
 const vueMiddleware = (options = defaultOptions) => {
+  // 用于缓存
   let cache
   let time = {}
   if (options.cache) {
+    // 使用lru-cache [缓存淘汰算法--LRU算法](https://zhuanlan.zhihu.com/p/34989978)
     const LRU = require('lru-cache')
 
     cache = new LRU({
@@ -24,13 +26,16 @@ const vueMiddleware = (options = defaultOptions) => {
     })
   }
 
+  // vue 的compiler
   const compiler = vueCompiler.createDefaultCompiler()
 
+  // 返回请求
   function send(res, source, mime) {
     res.setHeader('Content-Type', mime)
     res.end(source)
   }
 
+  // sourceMap
   function injectSourceMapToBlock (block, lang) {
     const map = Base64.toBase64(
       JSON.stringify(block.map)
@@ -57,6 +62,7 @@ const vueMiddleware = (options = defaultOptions) => {
     return styles.map(style => injectSourceMapToBlock(style, 'css'))
   }
   
+  // 获得缓存
   async function tryCache (key, checkUpdateTime = true) {
     const data = cache.get(key)
 
@@ -69,6 +75,12 @@ const vueMiddleware = (options = defaultOptions) => {
     return data
   }
 
+  /**
+   * 缓存数据
+   * @param {*} key 
+   * @param {*} data 
+   * @param {*} updateTime
+   */
   function cacheData (key, data, updateTime) {
     const old = cache.peek(key)
 
@@ -79,6 +91,10 @@ const vueMiddleware = (options = defaultOptions) => {
     } else return false
   }
 
+  /**
+   * 编译单vue文件
+   * @param {*} req 
+   */
   async function bundleSFC (req) {
     const { filepath, source, updateTime } = await readSource(req)
     const descriptorResult = compiler.compileToDescriptor(filepath, source)
@@ -91,8 +107,9 @@ const vueMiddleware = (options = defaultOptions) => {
   }
 
   return async (req, res, next) => {
-    if (req.path.endsWith('.vue')) {      
+    if (req.path.endsWith('.vue')) {  // 处理vue文件      
       const key = parseUrl(req).pathname
+      // 找文件缓存
       let out = await tryCache(key)
 
       if (!out) {
@@ -103,24 +120,27 @@ const vueMiddleware = (options = defaultOptions) => {
       }
       
       send(res, out.code, 'application/javascript')
-    } else if (req.path.endsWith('.js')) {
+    } else if (req.path.endsWith('.js')) { // 处理js文件
       const key = parseUrl(req).pathname
+      // 找文件缓存
       let out = await tryCache(key)
 
       if (!out) {
-        // transform import statements
+        // transform import statements 转换import
         const result = await readSource(req)
         out = transformModuleImports(result.source)
         cacheData(key, out, result.updateTime)
       }
 
       send(res, out, 'application/javascript')
-    } else if (req.path.startsWith('/__modules/')) {
+    } else if (req.path.startsWith('/__modules/')) {  // 处理/__modules/文件
       const key = parseUrl(req).pathname
       const pkg = req.path.replace(/^\/__modules\//, '')
 
+      // 找文件缓存
       let out = await tryCache(key, false) // Do not outdate modules
       if (!out) {
+        // 通过loadPkg去获取源码
         out = (await loadPkg(pkg)).toString()
         cacheData(key, out, false) // Do not outdate modules
       }

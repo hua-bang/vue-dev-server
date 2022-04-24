@@ -5,6 +5,10 @@ const stat = require('util').promisify(fs.stat)
 const parseUrl = require('parseurl')
 const root = process.cwd()
 
+/**
+ * 获取文件信息
+ * @param {*} req
+ */
 async function readSource(req) {
   const { pathname } = parseUrl(req)
   const filepath = path.resolve(root, pathname.replace(/^\//, ''))

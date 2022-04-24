@@ -1,6 +1,11 @@
 const recast = require('recast')
 const isPkg = require('validate-npm-package-name')
 
+/**
+ * 通过`recast`去转译`js`文件中的`import`
+ * @param {*} code 源码
+ * @returns string 源代码转译后的代码
+ */
 function transformModuleImports(code) {
   const ast = recast.parse(code)
   recast.types.visit(ast, {
