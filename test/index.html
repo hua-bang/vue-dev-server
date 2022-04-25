@@ -3,9 +3,23 @@
 <head>
   <meta charset="utf-8">
   <title>Vue Dev Server</title>
+  <style>
+    .container {
+      display: flex;
+      width: 100%;
+    }
+
+    .container > div {
+      flex: 1;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-  <div id="app"></div>
+  <div class="container">
+    <div id="vue-app"></div>
+    <div id="react-app"></div>
+  </div>
   <script type="module">
     import './main.js'
   </script>

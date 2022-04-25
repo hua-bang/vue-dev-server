@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const express = require('express')
-const { vueMiddleware } = require('../middleware')
+const { fileMiddleware } = require('../middleware/index.js')
 
 const app = express()
 
@@ -10,7 +10,7 @@ const app = express()
 const root = process.cwd();
 
 // vueMiddleware中间件
-app.use(vueMiddleware())
+app.use(fileMiddleware())
 
 app.use(express.static(root))
 
